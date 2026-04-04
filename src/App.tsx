@@ -227,8 +227,10 @@ export default function App() {
       console.error("Search error:", err);
       let errorMessage = "Failed to fetch compatibility data. Please try again.";
       
+      const errString = typeof err === 'string' ? err : (err?.message || JSON.stringify(err) || "");
+      
       // Handle Rate Limit (429) specifically
-      if (err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
+      if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota')) {
         errorMessage = "Search limit reached. Please wait 1 minute and try again.";
       } else if (err?.message) {
         errorMessage = `Error: ${err.message}`;
@@ -264,7 +266,7 @@ export default function App() {
                 e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
               }}
             />
-            <span className="text-[8px] text-slate-400 -mt-2">v2.0</span>
+            <span className="text-[8px] text-slate-400 -mt-2">v2.1</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
