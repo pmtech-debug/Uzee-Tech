@@ -148,8 +148,9 @@ export default function App() {
     setError(null);
     setResult({ text: '', sources: [], model: searchModel, type: type });
 
-    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === '') {
-      setError("API Key is missing. Please add a secret named 'GEMINI_API_KEY' or 'UZEE' to your GitHub repository.");
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === '' || apiKey === 'undefined' || apiKey === 'null') {
+      setError("API Key is missing. Please add a secret named 'UZEE' to your GitHub repository and update your deploy.yml file.");
       setLoading(false);
       return;
     }
@@ -250,7 +251,7 @@ export default function App() {
       }`}>
         <div className="relative h-full px-[5%] flex items-center justify-center">
           {/* Centered Logo Container */}
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center">
             <img 
               src="https://i.ibb.co/G4L7yTx8/Board-logo.png" 
               alt="UZEE TECH" 
@@ -259,6 +260,7 @@ export default function App() {
                 e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
               }}
             />
+            <span className="text-[8px] text-slate-400 -mt-2">v2.0</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
