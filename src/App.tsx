@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import Groq from "groq-sdk";
 import { Search, Smartphone, ShieldCheck, History, ExternalLink, Loader2, Info, AlertCircle, Moon, Sun, Phone, Mail, MapPin, MessageSquare, Zap, SmartphoneNfc, Trash2, X, Share2, Check, Copy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
@@ -13,6 +14,12 @@ import ReactMarkdown from 'react-markdown';
 const getAI = () => {
   const key = process.env.GEMINI_API_KEY || '';
   return new GoogleGenAI({ apiKey: key });
+};
+
+// Initialize Groq API
+const getGroq = () => {
+  const key = process.env.GROQ_API_KEY || '';
+  return new Groq({ apiKey: key, dangerouslyAllowBrowser: true });
 };
 
 type SearchType = 'screen' | 'case';
@@ -162,19 +169,18 @@ export default function App() {
     setError(null);
     setResult({ text: '', sources: [], model: searchModel, type: type });
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey || apiKey === '' || apiKey === 'undefined' || apiKey === 'null') {
-      setError("API Key is missing. Please add a secret named 'UZEE' to your GitHub repository and update your deploy.yml file.");
+      setError("API Key is missing. Please add a secret named 'GROQ_API_KEY' or 'UZEE' to your GitHub repository.");
       setLoading(false);
       return;
     }
 
-    const aiInstance = getAI();
+    const useGroq = !!process.env.GROQ_API_KEY;
+    
     try {
       const itemType = type === 'screen' ? 'screen protector' : 'back case / cover';
-      const responseStream = await aiInstance.models.generateContentStream({
-        model: "gemini-1.5-flash",
-        contents: `Mobile: "${searchModel}". 
+      const prompt = `Mobile: "${searchModel}". 
         Find compatible ${itemType} matches. 
         
         CRITICAL: 
@@ -204,31 +210,51 @@ export default function App() {
         1. BOLD the model names.
         2. Put details on a NEW line below the model name.
         3. Use DOUBLE line breaks between items for maximum spacing.
-        4. ONLY lists. NO intro/outro.`,
-        config: {
-          tools: [{ googleSearch: {} }],
-        },
-      });
+        4. ONLY lists. NO intro/outro.`;
 
       let fullText = '';
       let sources: { uri: string; title: string }[] = [];
 
-      for await (const chunk of responseStream) {
-        const textChunk = chunk.text || '';
-        fullText += textChunk;
-        
-        const chunkSources = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks
-          ?.filter(c => c.web)
-          ?.map(c => ({
-            uri: c.web!.uri,
-            title: c.web!.title || c.web!.uri
-          })) || [];
-        
-        if (chunkSources.length > 0) {
-          sources = Array.from(new Map([...sources, ...chunkSources].map(s => [s.uri, s])).values());
-        }
+      if (useGroq) {
+        const groq = getGroq();
+        const stream = await groq.chat.completions.create({
+          messages: [{ role: "user", content: prompt }],
+          model: "llama-3.1-8b-instant",
+          stream: true,
+        });
 
-        setResult(prev => prev ? { ...prev, text: fullText, sources } : { text: fullText, sources, model: searchModel, type: type });
+        for await (const chunk of stream) {
+          const textChunk = chunk.choices[0]?.delta?.content || '';
+          fullText += textChunk;
+          setResult(prev => prev ? { ...prev, text: fullText, sources } : { text: fullText, sources, model: searchModel, type: type });
+        }
+      } else {
+        const aiInstance = getAI();
+        const responseStream = await aiInstance.models.generateContentStream({
+          model: "gemini-1.5-flash",
+          contents: prompt,
+          config: {
+            tools: [{ googleSearch: {} }],
+          },
+        });
+
+        for await (const chunk of responseStream) {
+          const textChunk = chunk.text || '';
+          fullText += textChunk;
+          
+          const chunkSources = chunk.candidates?.[0]?.groundingMetadata?.groundingChunks
+            ?.filter(c => c.web)
+            ?.map(c => ({
+              uri: c.web!.uri,
+              title: c.web!.title || c.web!.uri
+            })) || [];
+          
+          if (chunkSources.length > 0) {
+            sources = Array.from(new Map([...sources, ...chunkSources].map(s => [s.uri, s])).values());
+          }
+
+          setResult(prev => prev ? { ...prev, text: fullText, sources } : { text: fullText, sources, model: searchModel, type: type });
+        }
       }
 
       // Save to Cache
@@ -281,7 +307,7 @@ export default function App() {
                 e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
               }}
             />
-            <span className="text-[8px] text-slate-400 -mt-2">v2.2</span>
+            <span className="text-[8px] text-slate-400 -mt-2">v3.0 (Groq)</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
