@@ -10,7 +10,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 
 // Initialize Gemini API
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const getAI = () => {
+  const key = process.env.GEMINI_API_KEY || '';
+  return new GoogleGenAI({ apiKey: key });
+};
 
 type SearchType = 'screen' | 'case';
 
@@ -145,9 +148,16 @@ export default function App() {
     setError(null);
     setResult({ text: '', sources: [], model: searchModel, type: type });
 
+    if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === '') {
+      setError("API Key is missing. Please add GEMINI_API_KEY to your GitHub Secrets.");
+      setLoading(false);
+      return;
+    }
+
+    const aiInstance = getAI();
     try {
       const itemType = type === 'screen' ? 'screen protector' : 'back case / cover';
-      const responseStream = await ai.models.generateContentStream({
+      const responseStream = await aiInstance.models.generateContentStream({
         model: "gemini-3-flash-preview",
         contents: `Mobile: "${searchModel}". 
         Find compatible ${itemType} matches. 
