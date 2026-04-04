@@ -149,7 +149,7 @@ export default function App() {
     setResult({ text: '', sources: [], model: searchModel, type: type });
 
     if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === '') {
-      setError("API Key is missing. Please add GEMINI_API_KEY to your GitHub Secrets.");
+      setError("API Key is missing. Please add a secret named 'GEMINI_API_KEY' or 'UZEE' to your GitHub repository.");
       setLoading(false);
       return;
     }
@@ -158,7 +158,7 @@ export default function App() {
     try {
       const itemType = type === 'screen' ? 'screen protector' : 'back case / cover';
       const responseStream = await aiInstance.models.generateContentStream({
-        model: "gemini-3-flash-preview",
+        model: "gemini-flash-latest",
         contents: `Mobile: "${searchModel}". 
         Find compatible ${itemType} matches. 
         
@@ -192,7 +192,6 @@ export default function App() {
         4. ONLY lists. NO intro/outro.`,
         config: {
           tools: [{ googleSearch: {} }],
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
         },
       });
 
@@ -223,9 +222,21 @@ export default function App() {
       localStorage.setItem('searchCache_v6', JSON.stringify(searchCache.current));
       
       saveToHistory(searchModel, type);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Search error:", err);
-      setError("Failed to fetch compatibility data. Please try again.");
+      let errorMessage = "Failed to fetch compatibility data. Please try again.";
+      if (err?.message) {
+        errorMessage = `Error: ${err.message}`;
+      } else if (typeof err === 'string') {
+        errorMessage = `Error: ${err}`;
+      } else {
+        try {
+          errorMessage = `Error: ${JSON.stringify(err)}`;
+        } catch (e) {
+          errorMessage = "An unknown error occurred during search.";
+        }
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
