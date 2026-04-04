@@ -39,7 +39,20 @@ export default function App() {
   const [searchType, setSearchType] = useState<SearchType>('screen');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const cooldownTimer = useRef<NodeJS.Timeout | null>(null);
   const searchCache = useRef<Record<string, SearchResult>>({});
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      cooldownTimer.current = setTimeout(() => setCooldown(prev => prev - 1), 1000);
+    } else if (cooldownTimer.current) {
+      clearTimeout(cooldownTimer.current);
+    }
+    return () => {
+      if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+    };
+  }, [cooldown]);
 
   useEffect(() => {
     // Load history
@@ -134,6 +147,7 @@ export default function App() {
   };
 
   const handleSearch = async (searchModel: string = query, type: SearchType = searchType) => {
+    if (cooldown > 0) return;
     const normalizedQuery = `${type}:${searchModel.trim().toLowerCase()}`;
     if (!searchModel.trim()) return;
     
@@ -159,7 +173,7 @@ export default function App() {
     try {
       const itemType = type === 'screen' ? 'screen protector' : 'back case / cover';
       const responseStream = await aiInstance.models.generateContentStream({
-        model: "gemini-flash-latest",
+        model: "gemini-1.5-flash",
         contents: `Mobile: "${searchModel}". 
         Find compatible ${itemType} matches. 
         
@@ -232,6 +246,7 @@ export default function App() {
       // Handle Rate Limit (429) specifically
       if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota')) {
         errorMessage = "Search limit reached. Please wait 1 minute and try again.";
+        setCooldown(60); // Start 60s cooldown
       } else if (err?.message) {
         errorMessage = `Error: ${err.message}`;
       } else if (typeof err === 'string') {
@@ -266,7 +281,7 @@ export default function App() {
                 e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
               }}
             />
-            <span className="text-[8px] text-slate-400 -mt-2">v2.1</span>
+            <span className="text-[8px] text-slate-400 -mt-2">v2.2</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
@@ -349,11 +364,16 @@ export default function App() {
             />
             <button
               onClick={() => handleSearch()}
-              disabled={loading || !query.trim()}
+              disabled={loading || !query.trim() || cooldown > 0}
               className="absolute right-2.5 inset-y-2.5 px-8 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-lg shadow-red-600/30 active:scale-95"
             >
               {loading ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
+              ) : cooldown > 0 ? (
+                <div className="flex flex-col items-center leading-none">
+                  <span className="text-[10px] opacity-70">WAIT</span>
+                  <span className="text-lg">{cooldown}s</span>
+                </div>
               ) : (
                 <>
                   <Zap className="w-4 h-4 fill-current" />
