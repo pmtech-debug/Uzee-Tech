@@ -226,7 +226,11 @@ export default function App() {
     } catch (err: any) {
       console.error("Search error:", err);
       let errorMessage = "Failed to fetch compatibility data. Please try again.";
-      if (err?.message) {
+      
+      // Handle Rate Limit (429) specifically
+      if (err?.message?.includes('429') || err?.message?.includes('RESOURCE_EXHAUSTED')) {
+        errorMessage = "Search limit reached. Please wait 1 minute and try again.";
+      } else if (err?.message) {
         errorMessage = `Error: ${err.message}`;
       } else if (typeof err === 'string') {
         errorMessage = `Error: ${err}`;
