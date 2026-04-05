@@ -170,13 +170,13 @@ export default function App() {
     setResult({ text: '', sources: [], model: searchModel, type: type });
 
     const apiKey = process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY;
+    const useGroq = !!process.env.GROQ_API_KEY;
+    
     if (!apiKey || apiKey === '' || apiKey === 'undefined' || apiKey === 'null') {
-      setError("API Key is missing. Please add a secret named 'GROQ_API_KEY' or 'UZEE' to your GitHub repository.");
+      setError(`API Key is missing. (Debug: Groq=${!!process.env.GROQ_API_KEY}, Gemini=${!!process.env.GEMINI_API_KEY})`);
       setLoading(false);
       return;
     }
-
-    const useGroq = !!process.env.GROQ_API_KEY;
     
     try {
       const itemType = type === 'screen' ? 'screen protector' : 'back case / cover';
