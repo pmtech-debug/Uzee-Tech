@@ -299,15 +299,8 @@ export default function App() {
         <div className="relative h-full px-[5%] flex items-center justify-center">
           {/* Centered Logo Container */}
           <div className="flex flex-col items-center justify-center">
-            <img 
-              src="https://i.ibb.co/G4L7yTx8/Board-logo.png" 
-              alt="UZEE TECH" 
-              className="h-[100px] w-auto object-contain block"
-              onError={(e) => {
-                e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
-              }}
-            />
-            <span className="text-[8px] text-slate-400 -mt-2">v3.2 (Groq)</span>
+            <h1 className="text-2xl font-black tracking-tighter text-red-600">UZEE TECH</h1>
+            <span className="text-[8px] text-slate-400 -mt-1">v3.2 (Groq)</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
