@@ -267,10 +267,10 @@ export default function App() {
       console.error("Search error:", err);
       let errorMessage = "Failed to fetch compatibility data. Please try again.";
       
-      const errString = typeof err === 'string' ? err : (err?.message || JSON.stringify(err) || "");
+      const errString = JSON.stringify(err).toLowerCase();
       
       // Handle Rate Limit (429) specifically
-      if (errString.includes('429') || errString.includes('RESOURCE_EXHAUSTED') || errString.includes('quota')) {
+      if (errString.includes('429') || errString.includes('resource_exhausted') || errString.includes('quota') || errString.includes('limit')) {
         errorMessage = "Search limit reached. Please wait 1 minute and try again.";
         setCooldown(60); // Start 60s cooldown
       } else if (err?.message) {
@@ -307,7 +307,7 @@ export default function App() {
                 e.currentTarget.src = "https://img.icons8.com/fluency/48/shield.png";
               }}
             />
-            <span className="text-[8px] text-slate-400 -mt-2">v3.0 (Groq)</span>
+            <span className="text-[8px] text-slate-400 -mt-2">v3.2 (Groq)</span>
           </div>
           
           {/* Moon Toggle - Positioned absolute to not affect centering */}
